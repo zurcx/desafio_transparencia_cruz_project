@@ -1,0 +1,62 @@
+# =========================
+# PYTHON
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+config.py
+# ambiente virtual
+venv/
+.venv/
+env/
+data/
+
+# distribuição/build
+build/
+dist/
+*.egg-info/
+
+# =========================
+# JUPYTER
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# DATA SCIENCE
+# =========================
+data/raw/
+data/interim/
+data/viagens_2025_6meses.zip
+
+# arquivos grandes
+*.parquet
+*.feather
+*.h5
+
+# =========================
+# LOGS
+# =========================
+*.log
+
+# =========================
+# ENVIRONMENT VARIABLES
+# =========================
+.env
+
+# =========================
+# VS CODE
+# =========================
+.vscode/
+
+# =========================
+# NEOVIM/VIM
+# =========================
+*.swp
+*.swo
+Session.vim
+
+# =========================
+# LINUX / MAC
+# =========================
+.DS_Store
+Thumbs.db
