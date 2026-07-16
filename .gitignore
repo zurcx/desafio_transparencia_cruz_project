@@ -28,16 +28,6 @@ data/raw/
 data/interim/
 data/viagens_2025_6meses.zip
 
-# arquivos grandes
-*.parquet
-*.feather
-*.h5
-
-# =========================
-# LOGS
-# =========================
-*.log
-
 # =========================
 # ENVIRONMENT VARIABLES
 # =========================
