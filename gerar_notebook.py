@@ -1,318 +1,369 @@
 import json
 
-# Inicializa a estrutura limpa do Notebook
-notebook_data = {
-    "cells": [],
+notebook = {
+    "cells": [
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# Desafio Transparência - Análise Consolidada (Camada Gold)\n",
+                "Este notebook realiza a extração, transformação e análise de dados sobre diárias, passagens e viagens corporativas. Os resultados são apresentados em DataFrames e exportados como imagens estáticas em alta resolução (`.png`) na pasta `graficos_png/`."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import sys\n",
+                "import os\n",
+                "import pandas as pd\n",
+                "import plotly.express as px\n",
+                "import plotly.io as pio\n",
+                "\n",
+                "# Garantir que a pasta de gráficos exista\n",
+                "os.makedirs('graficos_png', exist_ok=True)\n",
+                "\n",
+                "# Definir renderizador estático como padrão para visualização limpa e exportação\n",
+                "pio.renderers.default = 'png'\n",
+                "\n",
+                "# Conexão com o banco de dados (Importando diretamente do banco.py da raiz)\n",
+                "import banco\n",
+                "\n",
+                "conn = banco.criar_conexao()\n",
+                "print('Conexão estabelecida com sucesso!')"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 1. Top 5 Órgãos com Maior Custo Total\n",
+                "**Pergunta de Negócio:** Quais são os 5 órgãos públicos que acumularam o maior valor em gastos com viagens e diárias?"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "query_1 = '''\n",
+                "SELECT \n",
+                "    `Nome do órgão superior` AS orgao,\n",
+                "    SUM(`Valor total da viagem`) AS custo_total\n",
+                "FROM gold_viagens_consolidadas\n",
+                "GROUP BY 1\n",
+                "ORDER BY custo_total DESC\n",
+                "LIMIT 5;\n",
+                "'''\n",
+                "df1 = pd.read_sql(query_1, conn)\n",
+                "df1_sorted = df1.sort_values('custo_total', ascending=True)\n",
+                "\n",
+                "fig1 = px.bar(\n",
+                "    df1_sorted,\n",
+                "    x='custo_total',\n",
+                "    y='orgao',\n",
+                "    orientation='h',\n",
+                "    text=df1_sorted['custo_total'].apply(lambda x: f'R$ {x:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.').strip()),\n",
+                "    title='Top 5 Órgãos por Custo Total de Viagens'\n",
+                ")\n",
+                "\n",
+                "max_val1 = df1_sorted['custo_total'].max()\n",
+                "fig1.update_traces(\n",
+                "    textposition='outside',\n",
+                "    texttemplate='  %{text}',\n",
+                "    cliponaxis=False\n",
+                ")\n",
+                "fig1.update_layout(\n",
+                "    margin=dict(l=260, r=180, t=60, b=50),\n",
+                "    xaxis=dict(range=[0, max_val1 * 1.35], title='Custo Total (R$)'),\n",
+                "    yaxis=dict(title='')\n",
+                ")\n",
+                "\n",
+                "fig1.write_image('graficos_png/1_maior_custo_total_orgao.png', scale=2)\n",
+                "fig1.show()"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 2. Top 3 Destinos com Maior Custo Médio por Viagem\n",
+                "**Pergunta de Negócio:** Quais destinos possuem a maior média de custo por ocorrência individual de viagem?"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "query_2 = '''\n",
+                "SELECT \n",
+                "    `Destinos` AS destino,\n",
+                "    AVG(`Valor total da viagem`) AS custo_medio\n",
+                "FROM gold_viagens_consolidadas\n",
+                "WHERE `Destinos` IS NOT NULL AND `Destinos` != ''\n",
+                "GROUP BY 1\n",
+                "ORDER BY custo_medio DESC\n",
+                "LIMIT 3;\n",
+                "'''\n",
+                "df2 = pd.read_sql(query_2, conn)\n",
+                "\n",
+                "fig2 = px.bar(\n",
+                "    df2,\n",
+                "    x='destino',\n",
+                "    y='custo_medio',\n",
+                "    text=df2['custo_medio'].apply(lambda x: f'R$ {x:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.').strip()),\n",
+                "    title='Top 3 Destinos com Maior Custo Médio'\n",
+                ")\n",
+                "\n",
+                "max_val2 = df2['custo_medio'].max()\n",
+                "fig2.update_traces(\n",
+                "    textposition='outside',\n",
+                "    cliponaxis=False\n",
+                ")\n",
+                "fig2.update_layout(\n",
+                "    margin=dict(l=60, r=60, t=80, b=60),\n",
+                "    yaxis=dict(range=[0, max_val2 * 1.35], title='Custo Médio (R$)'),\n",
+                "    xaxis=dict(title='Destino')\n",
+                ")\n",
+                "\n",
+                "fig2.write_image('graficos_png/2_custo_medio_destino.png', scale=2)\n",
+                "fig2.show()"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 3. Viagem de Maior Duração\n",
+                "**Pergunta de Negócio:** Qual foi o registro de viagem corporativa com o maior número de dias contínuos e qual foi o valor total associado?"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "query_3 = '''\n",
+                "SELECT \n",
+                "    `Identificador do processo de viagem` AS id_viagem,\n",
+                "    `Nome` AS viajante,\n",
+                "    `Motivo do afastamento` AS motivo,\n",
+                "    `Duração em Dias` AS duracao_dias,\n",
+                "    `Valor total da viagem` AS custo_total\n",
+                "FROM gold_viagens_consolidadas\n",
+                "ORDER BY duracao_dias DESC\n",
+                "LIMIT 1;\n",
+                "'''\n",
+                "df3 = pd.read_sql(query_3, conn)\n",
+                "display(df3)"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 4. Tipo de Pagamento com Maior Valor Médio\n",
+                "**Pergunta de Negócio:** Qual a modalidade financeira/tipo de pagamento que apresenta o maior ticket médio transacionado?"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "query_4 = '''\n",
+                "SELECT \n",
+                "    `Tipo de pagamento` AS tipo_pagamento,\n",
+                "    AVG(`Valor`) AS valor_medio\n",
+                "FROM gold_pagamento_limpo\n",
+                "WHERE `Tipo de pagamento` IS NOT NULL AND `Tipo de pagamento` != ''\n",
+                "GROUP BY 1\n",
+                "ORDER BY valor_medio DESC;\n",
+                "'''\n",
+                "df4 = pd.read_sql(query_4, conn)\n",
+                "\n",
+                "fig4 = px.bar(\n",
+                "    df4,\n",
+                "    x='tipo_pagamento',\n",
+                "    y='valor_medio',\n",
+                "    text=df4['valor_medio'].apply(lambda x: f'R$ {x:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.').strip()),\n",
+                "    title='Valor Médio por Tipo de Pagamento'\n",
+                ")\n",
+                "\n",
+                "max_val4 = df4['valor_medio'].max()\n",
+                "fig4.update_traces(\n",
+                "    textposition='outside',\n",
+                "    cliponaxis=False\n",
+                ")\n",
+                "fig4.update_layout(\n",
+                "    margin=dict(l=60, r=60, t=80, b=60),\n",
+                "    yaxis=dict(range=[0, max_val4 * 1.35], title='Valor Médio (R$)'),\n",
+                "    xaxis=dict(title='Tipo de Pagamento')\n",
+                ")\n",
+                "\n",
+                "fig4.write_image('graficos_png/4_valor_medio_pagamento.png', scale=2)\n",
+                "fig4.show()"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 5. Meio de Transporte Mais Utilizado\n",
+                "**Pergunta de Negócio:** Qual a proporção e distribuição do uso de meios de transporte nos trechos realizados?"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "query_5 = '''\n",
+                "SELECT \n",
+                "    `Meio de transporte` AS meio_transporte,\n",
+                "    COUNT(*) AS total_trechos\n",
+                "FROM gold_trecho_limpo\n",
+                "WHERE `Meio de transporte` IS NOT NULL AND `Meio de transporte` != ''\n",
+                "GROUP BY 1\n",
+                "ORDER BY total_trechos DESC;\n",
+                "'''\n",
+                "df5 = pd.read_sql(query_5, conn)\n",
+                "\n",
+                "fig5 = px.pie(\n",
+                "    df5,\n",
+                "    values='total_trechos',\n",
+                "    names='meio_transporte',\n",
+                "    title='Distribuição dos Meios de Transporte Utilizados',\n",
+                "    hole=0.4\n",
+                ")\n",
+                "fig5.update_traces(textinfo='percent+label')\n",
+                "fig5.update_layout(margin=dict(l=50, r=50, t=60, b=50))\n",
+                "\n",
+                "fig5.write_image('graficos_png/5_meio_transporte_mais_usado.png', scale=2)\n",
+                "fig5.show()"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 6. Frequência de Trechos por UF de Destino\n",
+                "**Pergunta de Negócio:** Quais estados da federação (UF) concentram o maior volume de trechos em viagens corporativas?"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "query_6 = '''\n",
+                "SELECT \n",
+                "    `UF - Destino` AS uf_destino,\n",
+                "    COUNT(*) AS frequencia\n",
+                "FROM gold_trecho_limpo\n",
+                "WHERE `UF - Destino` IS NOT NULL AND `UF - Destino` != ''\n",
+                "GROUP BY 1\n",
+                "ORDER BY frequencia DESC;\n",
+                "'''\n",
+                "df6 = pd.read_sql(query_6, conn)\n",
+                "\n",
+                "fig6 = px.bar(\n",
+                "    df6,\n",
+                "    x='uf_destino',\n",
+                "    y='frequencia',\n",
+                "    text='frequencia',\n",
+                "    title='Frequência de Trechos por UF de Destino'\n",
+                ")\n",
+                "\n",
+                "max_val6 = df6['frequencia'].max()\n",
+                "fig6.update_traces(\n",
+                "    textposition='outside',\n",
+                "    cliponaxis=False\n",
+                ")\n",
+                "fig6.update_layout(\n",
+                "    margin=dict(l=50, r=50, t=80, b=100),\n",
+                "    xaxis=dict(tickangle=-45, title='UF de Destino'),\n",
+                "    yaxis=dict(range=[0, max_val6 * 1.3], title='Total de Trechos')\n",
+                ")\n",
+                "\n",
+                "fig6.write_image('graficos_png/6_uf_destino_frequencia.png', scale=2)\n",
+                "fig6.show()"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 7. Órgão Superior que Efetivamente Pagou Mais no Total\n",
+                "**Pergunta de Negócio:** Qual unidade gestora realizou a maior soma em pagamentos liquidados/efetivados?"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "query_7 = '''\n",
+                "SELECT \n",
+                "    v.`Nome do órgão superior` AS orgao,\n",
+                "    SUM(p.`Valor`) AS total_pago\n",
+                "FROM gold_pagamento_limpo p\n",
+                "JOIN gold_viagens_consolidadas v \n",
+                "  ON p.`Identificador do processo de viagem` = v.`Identificador do processo de viagem`\n",
+                "WHERE v.`Nome do órgão superior` IS NOT NULL\n",
+                "GROUP BY 1\n",
+                "ORDER BY total_pago DESC\n",
+                "LIMIT 5;\n",
+                "'''\n",
+                "df7 = pd.read_sql(query_7, conn)\n",
+                "df7_sorted = df7.sort_values('total_pago', ascending=True)\n",
+                "\n",
+                "fig7 = px.bar(\n",
+                "    df7_sorted,\n",
+                "    x='total_pago',\n",
+                "    y='orgao',\n",
+                "    orientation='h',\n",
+                "    text=df7_sorted['total_pago'].apply(lambda x: f'R$ {x:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.').strip()),\n",
+                "    title='Top Órgãos por Total Efetivamente Pago'\n",
+                ")\n",
+                "\n",
+                "max_val7 = df7_sorted['total_pago'].max()\n",
+                "fig7.update_traces(\n",
+                "    textposition='outside',\n",
+                "    texttemplate='  %{text}',\n",
+                "    cliponaxis=False\n",
+                ")\n",
+                "fig7.update_layout(\n",
+                "    margin=dict(l=260, r=180, t=60, b=50),\n",
+                "    xaxis=dict(range=[0, max_val7 * 1.35], title='Total Pago (R$)'),\n",
+                "    yaxis=dict(title='')\n",
+                ")\n",
+                "\n",
+                "fig7.write_image('graficos_png/7_orgao_que_mais_pagou.png', scale=2)\n",
+                "fig7.show()"
+            ]
+        }
+    ],
     "metadata": {
-        "kernelspec": {
-            "display_name": "Python 3",
-            "language": "python",
-            "name": "python3"
+        "language_info": {
+            "name": "python"
         }
     },
     "nbformat": 4,
-    "nbformat_minor": 5
+    "nbformat_minor": 2
 }
 
-def add_markdown(texto_lista):
-    notebook_data["cells"].append({
-        "cell_type": "markdown",
-        "metadata": {},
-        "source": [line + "\n" for line in texto_lista]
-    })
+with open("3_analise.ipynb", "w", encoding="utf-8") as f:
+    json.dump(notebook, f, indent=2, ensure_ascii=False)
 
-def add_code(codigo_lista):
-    notebook_data["cells"].append({
-        "cell_type": "code",
-        "metadata": {},
-        "execution_count": None,
-        "outputs": [],
-        "source": [line + "\n" for line in codigo_lista]
-    })
-
-# --- CÉLULA 1: INTRODUÇÃO ---
-add_markdown([
-    "# Camada GOLD - Análise Consolidada de Viagens Corporativas",
-    "",
-    "Este notebook responde às perguntas estratégicas de negócio utilizando dados consolidados das tabelas **SILVER**. Para cada questão, apresentamos a consulta SQL, a tabela de resultados e o respectivo gráfico (exportado automaticamente em PNG).",
-    "",
-    "**Perguntas Respondidas:**",
-    "1. Os 5 órgãos com maior custo total.",
-    "2. Os 3 destinos com maior custo médio por viagem.",
-    "3. A viagem de maior duração e seu custo total.",
-    "4. Qual o tipo de pagamento com maior valor médio?",
-    "5. Qual o meio de transporte mais usado nos trechos?",
-    "6. Qual UF de destino aparece em mais trechos?",
-    "7. Qual órgão pagou mais no total?"
-])
-
-# --- CÉLULA 2: CÓDIGO CONEXÃO, SETUP E INSPEÇÃO DE COLUNAS ---
-add_code([
-    "import os",
-    "import sys",
-    "import pandas as pd",
-    "import plotly.express as px",
-    "import plotly.io as pio",
-    "",
-    "# Define o renderizador como png para evitar dependência do pacote nbformat no VS Code",
-    "pio.renderers.default = 'png'",
-    "",
-    "# Mapeia os caminhos absolutos baseados na estrutura de pastas real",
-    "diretorio_raiz = os.path.abspath(os.path.join(os.getcwd()))",
-    "pasta_mysql = os.path.join(diretorio_raiz, '_MySQL')",
-    "pasta_mysql_alt = os.path.abspath(os.path.join(os.getcwd(), '..', '_MySQL'))",
-    "",
-    "# Adiciona as pastas de scripts e banco ao sistema de busca do Python",
-    "for caminho in [diretorio_raiz, pasta_mysql, pasta_mysql_alt]:",
-    "    if os.path.exists(caminho) and caminho not in sys.path:",
-    "        sys.path.append(caminho)",
-    "",
-    "try:",
-    "    import banco",
-    "    print('Módulo \"banco\" importado com sucesso!')",
-    "except ModuleNotFoundError:",
-    "    raise ModuleNotFoundError('Não foi possível encontrar o módulo \"banco.py\".')",
-    "",
-    "# Garante a pasta para salvar os arquivos PNG na raiz do projeto",
-    "pasta_graficos = os.path.join(diretorio_raiz, 'graficos_png')",
-    "os.makedirs(pasta_graficos, exist_ok=True)",
-    "",
-    "conexao = banco.conectar()",
-    "",
-    "def consultar(sql):",
-    "    return pd.read_sql(sql, conexao)",
-    "",
-    "def salvar_grafico(fig, nome_arquivo):",
-    "    caminho_completo = os.path.join(pasta_graficos, nome_arquivo)",
-    "    try:",
-    "        fig.write_image(caminho_completo, scale=2, width=1000, height=550)",
-    "        print(f'Gráfico Retornado com sucesso em: {caminho_completo}')",
-    "    except Exception as e:",
-    "        print(f'Erro ao salvar imagem (Certifique-se que o pacote kaleido está instalado): {e}')",
-    "",
-    "# --- MAPEAMENTO DINÂMICO DE COLUNAS DE DESTINO ---",
-    "df_sample = pd.read_sql(\"SELECT * FROM silver_trecho LIMIT 1\", conexao)",
-    "colunas_disponiveis = list(df_sample.columns)",
-    "",
-    "# Identifica a coluna correta para cidade de destino",
-    "col_cidade = 'cidade_destino'",
-    "for c in ['cidade_destino', 'destino', 'destino_cidade', 'cidade']:",
-    "    if c in colunas_disponiveis:",
-    "        col_cidade = c",
-    "        break",
-    "",
-    "# Identifica a coluna correta para uf de destino",
-    "col_uf = 'uf_destino'",
-    "for u in ['uf_destino', 'uf', 'destino_uf', 'estado_destino']:",
-    "    if u in colunas_disponiveis:",
-    "        col_uf = u",
-    "        break",
-    "",
-    "print(f'Ambiente inicializado! Colunas mapeadas em silver_trecho -> Cidade: {col_cidade}, UF: {col_uf}')"
-])
-
-# --- CÉLULA 3: PERGUNTA 1 ---
-add_markdown(["## 1. Os 5 órgãos com maior custo total"])
-add_code([
-    "sql_p1 = \"\"\"",
-    "SELECT nome_orgao_superior, SUM(valor_total) AS custo_total",
-    "FROM silver_viagem",
-    "GROUP BY nome_orgao_superior",
-    "ORDER BY custo_total DESC",
-    "LIMIT 5;",
-    "\"\"\"",
-    "df_p1 = consultar(sql_p1)",
-    "display(df_p1)",
-    "",
-    "fig_p1 = px.bar(",
-    "    df_p1, x='custo_total', y='nome_orgao_superior', orientation='h',",
-    "    title='Top 5 Órgãos por Custo Total',",
-    "    labels={'custo_total': 'Custo Total (R$)', 'nome_orgao_superior': 'Órgão Orgânico'},",
-    "    text_auto='.2f', color_discrete_sequence=['#1f77b4']",
-    ")",
-    "fig_p1.update_layout(",
-    "    template='plotly_white', ",
-    "    title_font_family='Arial Black', ",
-    "    yaxis={'categoryorder': 'total ascending'},",
-    "    margin=dict(l=200, r=40, t=60, b=60),",
-    "    height=500",
-    ")",
-    "fig_p1.show()",
-    "salvar_grafico(fig_p1, '1_maior_custo_total_orgao.png')"
-])
-
-# --- CÉLULA 4: PERGUNTA 2 ---
-add_markdown(["## 2. Os 3 destinos com maior custo médio por viagem"])
-add_code([
-    "sql_p2 = f\"\"\"",
-    "SELECT t.{col_cidade} AS destino, AVG(v.valor_total) AS custo_medio",
-    "FROM silver_trecho t",
-    "INNER JOIN silver_viagem v ON t.id_viagem = v.id_viagem",
-    "WHERE t.{col_cidade} IS NOT NULL AND t.{col_cidade} <> ''",
-    "GROUP BY t.{col_cidade}",
-    "ORDER BY custo_medio DESC",
-    "LIMIT 3;",
-    "\"\"\"",
-    "df_p2 = consultar(sql_p2)",
-    "display(df_p2)",
-    "",
-    "fig_p2 = px.bar(",
-    "    df_p2, x='destino', y='custo_medio',",
-    "    title='Top 3 Destinos por Custo Médio por Viagem',",
-    "    labels={'custo_medio': 'Custo Médio (R$)', 'destino': 'Destino (Cidade)'},",
-    "    text_auto='.2f', color_discrete_sequence=['#e377c2']",
-    ")",
-    "fig_p2.update_layout(",
-    "    template='plotly_white', ",
-    "    title_font_family='Arial Black',",
-    "    margin=dict(l=40, r=40, t=60, b=60)",
-    ")",
-    "fig_p2.update_traces(textposition='outside')",
-    "fig_p2.show()",
-    "salvar_grafico(fig_p2, '2_custo_medio_destino.png')"
-])
-
-# --- CÉLULA 5: PERGUNTA 3 ---
-add_markdown(["## 3. A viagem de maior duração e seu custo total"])
-add_code([
-    "sql_p3 = \"\"\"",
-    "SELECT id_viagem, nome_viajante, duracao_dias, valor_total, motivo",
-    "FROM silver_viagem",
-    "ORDER BY duracao_dias DESC",
-    "LIMIT 1;",
-    "\"\"\"",
-    "df_p3 = consultar(sql_p3)",
-    "display(df_p3)"
-])
-
-# --- CÉLULA 6: PERGUNTA 4 ---
-add_markdown(["## 4. Qual o tipo de pagamento com maior valor médio?"])
-add_code([
-    "sql_p4 = \"\"\"",
-    "SELECT tipo_pagamento, AVG(valor) AS valor_medio",
-    "FROM silver_pagamento",
-    "GROUP BY tipo_pagamento",
-    "ORDER BY valor_medio DESC;",
-    "\"\"\"",
-    "df_p4 = consultar(sql_p4)",
-    "display(df_p4)",
-    "",
-    "fig_p4 = px.bar(",
-    "    df_p4, x='tipo_pagamento', y='valor_medio',",
-    "    title='Valor Médio por Tipo de Pagamento',",
-    "    labels={'valor_medio': 'Valor Médio (R$)', 'tipo_pagamento': 'Tipo de Pagamento'},",
-    "    text_auto='.2f', color_discrete_sequence=['#bcbd22']",
-    ")",
-    "fig_p4.update_layout(",
-    "    template='plotly_white', ",
-    "    title_font_family='Arial Black',",
-    "    margin=dict(l=40, r=40, t=60, b=60)",
-    ")",
-    "fig_p4.update_traces(textposition='outside')",
-    "fig_p4.show()",
-    "salvar_grafico(fig_p4, '4_valor_medio_pagamento.png')"
-])
-
-# --- CÉLULA 7: PERGUNTA 5 ---
-add_markdown(["## 5. Qual o meio de transporte mais usado nos trechos?"])
-add_code([
-    "sql_p5 = \"\"\"",
-    "SELECT meio_transporte, COUNT(*) AS quantidade_uso",
-    "FROM silver_trecho",
-    "WHERE meio_transporte IS NOT NULL AND meio_transporte <> ''",
-    "GROUP BY meio_transporte",
-    "ORDER BY quantidade_uso DESC;",
-    "\"\"\"",
-    "df_p5 = consultar(sql_p5)",
-    "display(df_p5)",
-    "",
-    "fig_p5 = px.pie(",
-    "    df_p5, values='quantidade_uso', names='meio_transporte',",
-    "    title='Meios de Transporte Mais Utilizados nos Trechos',",
-    "    hole=0.4, color_discrete_sequence=px.colors.qualitative.Safe",
-    ")",
-    "fig_p5.update_traces(textinfo='percent+label', texttemplate='%{label}: %{percent:.2%}')",
-    "fig_p5.update_layout(",
-    "    template='plotly_white', ",
-    "    title_font_family='Arial Black',",
-    "    margin=dict(l=40, r=40, t=60, b=60)",
-    ")",
-    "fig_p5.show()",
-    "salvar_grafico(fig_p5, '5_meio_transporte_mais_usado.png')"
-])
-
-# --- CÉLULA 8: PERGUNTA 6 (ROTACIONADA EM 45°) ---
-add_markdown(["## 6. Qual UF de destino aparece em mais trechos?"])
-add_code([
-    "sql_p6 = f\"\"\"",
-    "SELECT {col_uf} AS uf_destino, COUNT(*) AS quantidade_trechos",
-    "FROM silver_trecho",
-    "WHERE {col_uf} IS NOT NULL AND {col_uf} <> ''",
-    "GROUP BY {col_uf}",
-    "ORDER BY quantidade_trechos DESC;",
-    "\"\"\"",
-    "df_p6 = consultar(sql_p6)",
-    "display(df_p6)",
-    "",
-    "fig_p6 = px.bar(",
-    "    df_p6, x='uf_destino', y='quantidade_trechos',",
-    "    title='Frequência de Trechos por UF de Destino',",
-    "    labels={'quantidade_trechos': 'Nº de Trechos', 'uf_destino': 'UF Destino'},",
-    "    text_auto='d', color_discrete_sequence=['#17becf']",
-    ")",
-    "fig_p6.update_layout(",
-    "    template='plotly_white', ",
-    "    title_font_family='Arial Black',",
-    "    xaxis=dict(tickangle=-45),",
-    "    margin=dict(l=50, r=40, t=60, b=100)",
-    ")",
-    "fig_p6.update_traces(textposition='outside')",
-    "fig_p6.show()",
-    "salvar_grafico(fig_p6, '6_uf_destino_frequencia.png')"
-])
-
-# --- CÉLULA 9: PERGUNTA 7 ---
-add_markdown(["## 7. Qual órgão pagou mais no total?"])
-add_code([
-    "sql_p7 = \"\"\"",
-    "SELECT v.nome_orgao_superior, SUM(p.valor) AS total_pago",
-    "FROM silver_pagamento p",
-    "INNER JOIN silver_viagem v ON p.id_viagem = v.id_viagem",
-    "GROUP BY v.nome_orgao_superior",
-    "ORDER BY total_pago DESC",
-    "LIMIT 5;",
-    "\"\"\"",
-    "df_p7 = consultar(sql_p7)",
-    "display(df_p7)",
-    "",
-    "fig_p7 = px.bar(",
-    "    df_p7, x='total_pago', y='nome_orgao_superior', orientation='h',",
-    "    title='Top Órgãos por Total Efetivamente Pago',",
-    "    labels={'total_pago': 'Total Pago (R$)', 'nome_orgao_superior': 'Órgão'},",
-    "    text_auto='.2f', color_discrete_sequence=['#ff7f0e']",
-    ")",
-    "fig_p7.update_layout(",
-    "    template='plotly_white', ",
-    "    title_font_family='Arial Black', ",
-    "    yaxis={'categoryorder': 'total ascending'},",
-    "    margin=dict(l=200, r=40, t=60, b=60),",
-    "    height=500",
-    ")",
-    "fig_p7.show()",
-    "salvar_grafico(fig_p7, '7_orgao_que_mais_pagou.png')"
-])
-
-# --- CÉLULA 10: FECHAMENTO ---
-add_code([
-    "conexao.close()",
-    "print('Análise das 7 questões finalizada e salva com sucesso!')"
-])
-
-# Grava nas duas pastas encontradas no comando tree
-for caminho_saida in ["3_analise.ipynb", "scripts/3_analise.ipynb"]:
-    try:
-        with open(caminho_saida, "w", encoding="utf-8") as f:
-            json.dump(notebook_data, f, indent=2, ensure_ascii=False)
-        print(f"Notebook gerado com sucesso em: {caminho_saida}")
-    except FileNotFoundError:
-        pass
+print("Notebook '3_analise.ipynb' recriado com sucesso!")
