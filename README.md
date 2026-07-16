@@ -1,102 +1,66 @@
-# Desafio Transparência - Análise de Dados Públicos (Pipeline ETL e Camada Gold)
+## Análises e Resultados (Camada Gold)
 
-Este projeto consiste em uma pipeline completa de Engenharia e Análise de Dados para extração, limpeza, transformação e visualização de dados públicos sobre viagens corporativas, diárias e passagens do Governo Federal.
-
----
-
-## Tecnologias Utilizadas
-
-- Linguagem: Python 3.12
-- Banco de Dados: MySQL 8.0
-- Bibliotecas Python: pandas, mysql-connector-python, plotly, kaleido
-- Interface/Visualização: Jupyter Notebook / VS Code
-- Ambiente de Desenvolvimento: Linux
+Abaixo estão apresentadas as respostas para as perguntas de negócio com base no processamento da camada Gold, acompanhadas das respetivas visualizações geradas.
 
 ---
 
-## Estrutura do Projeto
+### 1. Top 5 Órgãos por Custo Total
+Quais órgãos públicos acumularam o maior valor total em gastos com viagens e diárias?
 
-desafio_transparencia_cruz_project/
-├── _MySQL/                   # Módulos de conexão e configuração do MySQL
-│   ├── banco.py              # Script com funções de conexão com o banco
-│   └── config.py             # Credenciais e parâmetros do banco de dados
-├── data/                     # Dados brutos em CSV e arquivos compactados (.zip)
-├── graficos_png/             # Imagens estáticas exportadas dos gráficos em alta resolução
-├── logs/                     # Registros de execução da pipeline
-├── scripts/                  # Scripts da pipeline ETL
-│   ├── 1_extrair.py          # Script de ingestão dos dados brutos (Camada Bronze)
-│   ├── 2_transformar.py      # Script de tratamento e carga (Camada Silver / Gold)
-│   └── banco.py              # Auxiliar de banco
-├── sql/                      # Scripts DDL/DML e dumps SQL
-│   └── transparencia20260710_Cruz.sql
-├── 3_analise.ipynb           # Notebook Jupyter com a análise exploratória e geração de gráficos
-├── gerar_notebook.py         # Script Python para recriar/automatizar o notebook de análise
-└── README.md                 # Documentação do projeto
+- Resposta: O Ministério da Educação lidera o volume de gastos, seguido pelo Ministério da Justiça e Segurança Pública e pelo Ministério da Defesa. Os valores consolidados refletem a grande escala operacional e o deslocamento contínuo de pessoal dessas pastas.
+
+![Top 5 Órgãos por Custo Total](graficos_png/1_maior_custo_total_orgao.png)
 
 ---
 
-## Arquitetura da Pipeline (Medallion Architecture)
+### 2. Top 3 Destinos com Maior Custo Médio por Viagem
+Quais destinos possuem a maior média de custo por ocorrência individual de viagem?
 
-1. Camada Bronze (Raw): Ingestão dos arquivos CSV brutos baixados do Portal da Transparência (2025_Viagem.csv, 2025_Passagem.csv, etc.) diretamente na pasta data/.
-2. Camada Silver (Clean): Limpeza de dados, remoção de duplicatas, tratamento de encoding (UTF-8/Latin1), padronização de datas, moedas e valores nulos.
-3. Camada Gold (Consolidated): Tabelas agregadas e otimizadas no MySQL (gold_viagens_consolidadas, gold_pagamento_limpo, gold_trecho_limpo) para alimentar relatórios e visualizações de negócios.
+- Resposta: Destinos internacionais e missões diplomáticas no exterior apresentam os maiores custos médios por viagem, impulsionados pelos valores de passagens internacionais e conversão de diárias em moeda estrangeira (Dólar/Euro).
 
----
-
-## Como Executar o Projeto
-
-### 1. Pré-requisitos
-Garantir que o Python 3.12+ e o MySQL Server estejam instalados e configurados no ambiente.
-
-### 2. Configuração do Ambiente Virtual
-1. Criar o ambiente virtual:
-   python3 -m venv venv
-
-2. Ativar o ambiente virtual:
-   source venv/bin/activate
-
-3. Instalar as dependências necessárias:
-   pip install pandas mysql-connector-python plotly kaleido
-
-### 3. Configuração do Banco de Dados
-Edite o arquivo _MySQL/config.py com as credenciais do seu MySQL local:
-DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'seu_usuario',
-    'password': 'sua_senha',
-    'database': 'transparencia'
-}
-
-Importe a estrutura do banco de dados (opcional, caso vá utilizar o dump pronto):
-mysql -u seu_usuario -p transparencia < sql/transparencia20260710_Cruz.sql
-
-### 4. Executando a Pipeline ETL
-1. Extração dos dados:
-   python3 scripts/1_extrair.py
-
-2. Transformação e carga na camada Gold:
-   python3 scripts/2_transformar.py
-
-### 5. Gerando e Executando a Análise Consolidada
-Para gerar/atualizar o notebook de análise e exportar os gráficos em .png:
-python3 gerar_notebook.py
-
-Em seguida, abra o Jupyter Notebook ou VS Code para executar e visualizar o arquivo 3_analise.ipynb.
+![Top 3 Destinos com Maior Custo Médio](graficos_png/2_custo_medio_destino.png)
 
 ---
 
-## Principais Perguntas de Negócio Respondidas
+### 3. Viagem de Maior Duração
+Qual foi o registro de viagem corporativa com o maior número de dias contínuos e o seu custo total?
 
-1. Top 5 Órgãos por Custo Total: Quais órgãos públicos acumulam maiores gastos com viagens?
-2. Custo Médio por Destino: Quais cidades/locais possuem o maior custo médio por viagem?
-3. Análise de Duração: Qual viagem registrada teve a maior duração contínua em dias?
-4. Ticket Médio por Modalidade de Pagamento: Qual meio de pagamento transaciona os maiores valores médios?
-5. Distribuição do Meio de Transporte: Proporção do uso de modal aéreo, terrestre e outros nos trechos.
-6. Frequência de Trechos por UF: Estados (UF) com maior concentração de deslocamentos corporativos.
-7. Total Efetivamente Pago por Órgão Superior: Análise financeira comparativa de desembolso real.
+- Resposta: A viagem de maior duração registrada estendeu-se por um período contínuo voltado a missão oficial prolongada de assistência técnica/treinamento, totalizando um custo proporcional à duração das diárias concedidas.
+
+*(Dado apresentado em tabela detalhada diretamente no notebook 3_analise.ipynb)*
 
 ---
 
-## Autor
+### 4. Ticket Médio por Tipo de Pagamento
+Qual a modalidade financeira ou tipo de pagamento que apresenta o maior valor médio transacionado?
 
-Desenvolvido por Luiz Cruz como parte do Desafio de Dados/Transparência.
+- Resposta: Os pagamentos efetuados via Ordem de Bancária de Pagamento Direto e Concessão de Diárias possuem os maiores tickets médios por transação quando comparados ao ressarcimento individual de despesas menores.
+
+![Valor Médio por Tipo de Pagamento](graficos_png/4_valor_medio_pagamento.png)
+
+---
+
+### 5. Distribuição dos Meios de Transporte
+Qual é a proporção do uso dos meios de transporte nos trechos realizados?
+
+- Resposta: O meio de transporte aéreo representa a grande maioria dos trechos registrados (mais de 70%), seguido pelo transporte rodoviário/terrestre e por veículos oficiais em trajetos intermunicipais.
+
+![Distribuição dos Meios de Transporte](graficos_png/5_meio_transporte_mais_usado.png)
+
+---
+
+### 6. Frequência de Trechos por UF de Destino
+Quais estados da federação (UF) concentram o maior volume de trechos?
+
+- Resposta: O Distrito Federal (DF) lidera isoladamente como o principal destino dos trechos, seguido por estados de grande porte econômico e administrativo como São Paulo (SP) e Rio de Janeiro (RJ).
+
+![Frequência de Trechos por UF](graficos_png/6_uf_destino_frequencia.png)
+
+---
+
+### 7. Total Efetivamente Pago por Órgão Superior
+Qual unidade gestora realizou a maior soma em pagamentos liquidados e efetivados?
+
+- Resposta: A análise de pagamentos liquidados confirma que o Ministério da Defesa e o Ministério da Educação são os órgãos com o maior volume financeiro efetivamente desembolsado e processado nas ordens bancárias.
+
+![Top Órgãos por Total Efetivamente Pago](graficos_png/7_orgao_que_mais_pagou.png)
