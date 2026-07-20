@@ -1,3 +1,42 @@
+# Análise Governamental: Gastos e Logística de Viagens Corporativas
+
+Uma solução de Business Intelligence desenvolvida em Python e SQL para analisar a eficiência orçamentária, modais de transporte e comportamento de custos em viagens corporativas governamentais. 
+
+Este repositório consolida dados brutos em uma camada refinada (Silver) para responder a perguntas críticas de auditoria e fornecer dashboards de alto nível para a tomada de decisão da diretoria.
+
+---
+
+## Perguntas de Negócio Respondidas
+
+O projeto foi estruturado para resolver 7 frentes analíticas essenciais divididas em três pilares estratégicos:
+
+### 1. Gestão Orçamentária e Maiores Custos
+* **Concentração de Gastos por Órgão:** Identificação do Top 5 órgãos com maior custo total acumulado em viagens corporativas, isolando o órgão campeão absoluto de despesas e sua respectiva participação (%) no orçamento global.
+* **Análise de Meios de Pagamento:** Avaliação de qual modalidade de pagamento apresenta o maior ticket médio por viagem para identificar gargalos ou preferências de faturamento.
+
+### 2. Eficiência Logística e Destinos
+* **Principais Polos de Destino:** Mapeamento do fluxo de viagens por Unidade da Federação (Top 10 UFs mais frequentadas) para entender a capilaridade das missões corporativas.
+* **Matriz de Transporte:** Análise do market share dos meios de transporte mais utilizados nos trechos para avaliar a eficiência logística dos deslocamentos.
+
+### 3. Casos Extremos e Ticket Médio
+* **Destinos Mais Caros:** Identificação dos 3 destinos com os maiores custos médios por viagem, permitindo auditar trechos com valores fora da curva.
+* **Auditoria de Anomalias (Recordes):** Isolamento e análise do caso extremo de maior duração em dias e seu respectivo impacto orçamentário.
+
+# Análise de Custos e Deslocamentos de Viagens a Serviço
+
+Este projeto realiza a extração, visualização e análise de dados sobre viagens a serviço e trechos percorridos a partir do banco de dados MySQL (`silver_viagem` e `silver_trecho`). O objetivo principal é gerar *insights* sobre o uso de recursos públicos e facilitar a tomada de decisão por meio de relatórios visuais limpos e legíveis.
+
+---
+
+## Técnicas e Tecnologias Utilizadas
+
+### Tecnologias
+* **Python 3.x:** Linguagem base do projeto.
+* **Pandas:** Manipulação, estruturação e agregação de dados em DataFrames.
+* **Plotly Express & Plotly I/O:** Construção dos gráficos interativos e aplicação de temas customizados.
+* **Kaleido:** Engine para exportação de gráficos estáticos em formato PNG de alta definição.
+* **MySQL:** Banco de dados relacional para armazenamento e consulta dos dados (`silver_viagem` e `silver_trecho`).
+
 ## Análises e Resultados (Camada Gold)
 
 Abaixo estão apresentadas as respostas para as perguntas de negócio com base no processamento da camada Gold, acompanhadas das respetivas visualizações geradas.
@@ -64,3 +103,9 @@ Qual unidade gestora realizou a maior soma em pagamentos liquidados e efetivados
 - Resposta: A análise de pagamentos liquidados confirma que o Ministério da Defesa e o Ministério da Educação são os órgãos com o maior volume financeiro efetivamente desembolsado e processado nas ordens bancárias.
 
 ![Top Órgãos por Total Efetivamente Pago](graficos_png/7_orgao_que_mais_pagou.png)
+
+
+## Conclusões e Insights a Partir dos Gráficos e Análise de Base
+Concentração de Recursos (Top 5 Órgãos): A visualização deixa evidente que uma pequena parcela dos órgãos superiores responde pela maior fatia do orçamento de viagens, facilitando ações prioritárias de auditoria e controle de gastos.
+
+Polos de Deslocamento (Top 10 Cidades): O fluxo de viagens concentra-se majoritariamente em capitais e centros administrativos, o que aponta oportunidades para negociações corporativas em escala (hotéis e companhias aéreas).
