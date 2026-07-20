@@ -50,3 +50,4 @@ Session.vim
 # =========================
 .DS_Store
 Thumbs.db
+gerar_notebook.py
